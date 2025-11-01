@@ -12,7 +12,8 @@ Basic Python project named "hoopla" using the uv package manager. The project pr
 ## Technology Stack
 - Python 3.12
 - uv package manager (v0.9.5)
-- No external dependencies
+- Go 1.24.4 (for bootdev CLI support)
+- No external Python dependencies
 
 ## Running the Project
 The project is configured with a workflow that runs:
@@ -29,3 +30,4 @@ Dependencies: None (minimal setup)
 - 2025-11-01: Initial project setup with uv package manager
 - Created basic main.py file that prints "hello world"
 - Configured workflow to run the application
+- Installed Go 1.24.4 to support bootdev CLI commands
