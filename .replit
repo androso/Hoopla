@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["bootdev-cli", "nano"]
+packages = ["nano"]
 
 [workflows]
 runButton = "Project"
