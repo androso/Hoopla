@@ -27,6 +27,8 @@ Python version: >= 3.12
 Dependencies: None (minimal setup)
 
 ## Recent Changes
+- 2025-11-05: Removed duplicate bootdev installation - now using only Go-installed v1.20.5 from ~/go/bin
+- 2025-11-05: Updated .profile to include ~/go/bin in PATH for go install commands
 - 2025-11-01: Initial project setup with uv package manager
 - Created basic main.py file that prints "hello world"
 - Configured workflow to run the application
