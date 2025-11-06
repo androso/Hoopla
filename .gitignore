@@ -41,4 +41,5 @@ env/
 .DS_Store
 Thumbs.db
 
-/data
+# Cache files
+cache/

@@ -16,15 +16,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "run"
+args = "build-index"
 
 [[workflows.workflow]]
-name = "run"
+name = "build-index"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "uv run main.py"
+args = "uv run cli/keyword_search_cli.py build"
 
 [workflows.workflow.metadata]
 outputType = "console"

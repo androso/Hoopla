@@ -1,7 +1,6 @@
 import argparse
-from collections import defaultdict
 import json
-from typing import Any, DefaultDict, Dict, List, Set
+from typing import Any, Dict, List, Set
 import string
 from nltk.stem import PorterStemmer
 import os 
@@ -19,7 +18,6 @@ class InvertedIndex:
         self.movies = movies
         
     def __add_document(self, doc_id: int, text:str):
-        # tokenize
         text = remove_punctuation_from_str(text.lower()) 
         tokens = text.split()
         tokens = remove_stop_words_and_stem(tokens, self.stop_words) 
@@ -31,12 +29,17 @@ class InvertedIndex:
             
     def get_documents(self, term: str) -> List[int]:
         term = term.lower()
-        if term in self.index:
+        text = remove_punctuation_from_str(term)
+        tokens = text.split()
+        tokens = remove_stop_words_and_stem(tokens, self.stop_words)
+        
+        if tokens[0] in self.index:
             return sorted(list(self.index[term]))
         return []
         
     def build(self) -> None:
-        for doc_id, movie in enumerate(self.movies):
+        for idx, movie in enumerate(self.movies):
+            doc_id = movie['id'] 
             self.docmap[doc_id] = movie
 
             text = f"{movie['title']} {movie['description']}"
@@ -119,6 +122,7 @@ def main() -> None:
                 if (index > 4):
                     break
                 print(f"{index + 1}.", movie["title"])
+                
         case "build": 
             print("Building inverted index...")
             movies = load_movies("data/movies.json")
