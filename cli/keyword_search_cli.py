@@ -37,7 +37,7 @@ def main() -> None:
                 print("Error: Index not found. Please run 'build' command first") 
                 return
                 
-            results = search_movie(inverted_index, args.query, stop_words)
+            results = search_movie(inverted_index, args.query)
             print(results) 
         case _:
             parser.print_help()
