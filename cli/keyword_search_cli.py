@@ -28,13 +28,16 @@ class InvertedIndex:
             self.index[token].add(doc_id)
             
     def get_documents(self, term: str) -> List[int]:
+        if not isinstance(term, str):
+            return []
+            
         term = term.lower()
         text = remove_punctuation_from_str(term)
-        tokens = text.split()
-        tokens = remove_stop_words_and_stem(tokens, self.stop_words)
+        token = text.split()[0]
+        token = remove_stop_words_and_stem([token], self.stop_words)[0]
         
-        if tokens[0] in self.index:
-            return sorted(list(self.index[term]))
+        if token in self.index:
+            return sorted(list(self.index[token]))
         return []
         
     def build(self) -> None:
@@ -116,10 +119,10 @@ def main() -> None:
             print("Searching for:", args.query)
             args.query = remove_punctuation_from_str(args.query.lower())
             movies = load_movies("data/movies.json")
-            results = search_movie(movies, args.query, stop_words)
+            results = search_movie(movies, args.query, stop_words)    
 
             for index, movie in enumerate(results):
-                if (index > 4):
+                if (index + 1 >= MAX_RESULTS):
                     break
                 print(f"{index + 1}.", movie["title"])
                 
@@ -130,11 +133,6 @@ def main() -> None:
             inverted_index.build()
             inverted_index.save()
             print("Index built and saved!")
-
-            merida_docs = inverted_index.get_documents("merida")
-            if merida_docs:
-                first_id = merida_docs[0]
-                print(f"First document ID for 'merida': {first_id} ({inverted_index.docmap[first_id]['title']})")
                 
         case _:
             parser.print_help()
