@@ -1,6 +1,5 @@
 import argparse
 import pickle
-import math
 from lib.keyword_search import InvertedIndex, search_movie
 from lib.search_utils import load_movies, load_stop_words
 
@@ -21,6 +20,13 @@ def main() -> None:
 
     idf_parser = subparsers.add_parser("idf", help="Calculates the IDF for a given term")
     idf_parser.add_argument("term", type=str, help="the term to get the idf for")
+
+    tfidf_parser = subparsers.add_parser("tfidf", help="Calculate TF - IDF") 
+    tfidf_parser.add_argument("doc_id", help="document id")
+    tfidf_parser.add_argument("term", help="term")
+
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")                                        
     
     args = parser.parse_args()
 
@@ -34,17 +40,27 @@ def main() -> None:
             inverted_index.build()
             inverted_index.save()
             print("Index built and saved!")
+            
         case "idf":
             print("Calculating IDF")
             inverted_index = InvertedIndex()
             inverted_index.load()
-
-            docs_count = len(inverted_index.docmap) + 1
-            term_count = len(search_movie(inverted_index, args.term)) + 1
+            idf = inverted_index.get_idf(args.term)
             
-            idf = math.log(docs_count / term_count)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}") 
             
-            print(f"Inverse document frequency of '{args.term}': {idf:.2}") 
+        case "tfidf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+            tf_idf = inverted_index.get_tf_idf(args.doc_id, args.term)
+            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
+            
+        case "bm25idf":
+            inverted_index = InvertedIndex()
+            inverted_index.load()
+            bm25idf = inverted_index.get_bm25_idf(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
+            
         case "search":
             print("Searching for:", args.query)
             inverted_index = InvertedIndex()
@@ -63,6 +79,7 @@ def main() -> None:
             inverted_index.load()
             count = inverted_index.get_tf(args.doc_id, args.term)
             print(count)
+            
         case _:
             parser.print_help()
 
