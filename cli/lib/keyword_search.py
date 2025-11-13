@@ -4,7 +4,7 @@ import pickle
 import string
 from typing import Any, Dict, List, Set
 from nltk.stem import PorterStemmer
-from lib.search_utils import BM25_K1, CACHE_DIR, load_movies, load_stop_words
+from lib.search_utils import BM25_B, BM25_K1, CACHE_DIR, load_movies, load_stop_words
 import math
 
 MAX_RESULTS = 5
@@ -71,11 +71,15 @@ class InvertedIndex:
         
         df = len(self.get_documents(token[0]))
         idf = math.log((len(self.docmap) - df + 0.5) / (df + 0.5) + 1) 
+        
         return idf
-
-    def get_bm25_tf(self, doc_id, term, k1 = BM25_K1):
+    
+    def get_bm25_tf(self, doc_id, term, k1 = BM25_K1, b = BM25_B):
         raw_tf = self.get_tf(doc_id, term)
-        bm25_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1)
+        avg_doc_length = self.__get_avg_doc_length()
+        length_norm = 1 - b + b * (self.doc_lengths[doc_id] / avg_doc_length)
+        bm25_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1 * length_norm)
+        
         return bm25_tf
         
     def get_documents(self, term: str, max_results=None):
@@ -125,7 +129,8 @@ class InvertedIndex:
             sum = 0.0
             for doc_length in self.doc_lengths:
                sum += self.doc_lengths[doc_length] 
-            return sum
+            avg = sum / len(self.doc_lengths)
+            return avg
         return 0.0
         
     def save(self) -> None:
@@ -139,9 +144,35 @@ class InvertedIndex:
             pickle.dump(self.term_frequencies, f)
         with open(self.doc_lengths_path, "wb") as f:
             pickle.dump(self.doc_lengths, f)
+
+    def bm25(self, doc_id, term):
+        tf = self.get_bm25_tf(doc_id, term)
+        idf = self.get_bm25_idf(term)
+        score = tf  * idf
+        
+        return score
+        
+    def bm25_search(self, query, limit):
+        query_tokenized = tokenize_text(query)
+        scores_dict = {}
+
+        for doc_id in self.index:
+            scores_dict[doc_id] = Counter()
+            for token in query_tokenized:
+                score = self.bm25(doc_id, token)
+                scores_dict[doc_id] += score
+
+        
+        return
         
     def search(self, query):
-        return
+        query_tokenized = tokenize_text(query) 
+        document_ids = []
+
+        for token in query_tokenized:
+            document_ids.extend(self.get_documents(token, MAX_RESULTS))
+            
+        return document_ids
 
 def remove_punctuation_from_str(text: str) -> str:
     table = str.maketrans("", "", string.punctuation)
