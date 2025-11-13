@@ -36,7 +36,7 @@ def main() -> None:
 
     bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")    
     bm25search_parser.add_argument("query", type=str, help="Search query")
-    # bm25search_parser.add_argument("--limit", type=int, help="Limit to documents returned")
+    bm25search_parser.add_argument("--limit", type=int, default=5, help="Limit to documents returned")
     
     args = parser.parse_args()
 
@@ -86,7 +86,7 @@ def main() -> None:
         case "bm25search":
             inverted_index = InvertedIndex()
             inverted_index.load()
-            results = inverted_index.bm25_search(args.query, 5)
+            results = inverted_index.bm25_search(args.query, args.limit)
             
             for index, result in enumerate(results):
                 print(f"{index + 1}. ({result["id"]}) {result["title"]} - Score: {result["score"]:.2f}")
