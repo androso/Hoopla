@@ -3,9 +3,8 @@ import os
 import pickle
 import string
 from typing import Any, Dict, List, Set
-from nltk import tokenize
 from nltk.stem import PorterStemmer
-from lib.search_utils import CACHE_DIR, load_movies, load_stop_words
+from lib.search_utils import BM25_K1, CACHE_DIR, load_movies, load_stop_words
 import math
 
 MAX_RESULTS = 5
@@ -29,6 +28,8 @@ class InvertedIndex:
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
         self.term_frequencies = {}
         self.term_freq_path = os.path.join(CACHE_DIR, "term_frequencies.pkl") 
+        self.doc_lengths = {}
+        self.doc_lengths_path = os.path.join(CACHE_DIR, "doc_lengths.pkl")
         
     def __add_document(self, doc_id: int, text: str):
         tokens = tokenize_text(text)
@@ -41,7 +42,8 @@ class InvertedIndex:
                 self.index[token] = set()
             self.index[token].add(doc_id)
             self.term_frequencies[doc_id][token] += 1 
-
+        self.doc_lengths[doc_id] = len(tokens)
+        
     def get_tf(self, doc_id, term):
         token = tokenize_text(term)
         
@@ -70,8 +72,13 @@ class InvertedIndex:
         df = len(self.get_documents(token[0]))
         idf = math.log((len(self.docmap) - df + 0.5) / (df + 0.5) + 1) 
         return idf
+
+    def get_bm25_tf(self, doc_id, term, k1 = BM25_K1):
+        raw_tf = self.get_tf(doc_id, term)
+        bm25_tf = (raw_tf * (k1 + 1)) / (raw_tf + k1)
+        return bm25_tf
         
-    def get_documentea(self, term: str, max_results=None):
+    def get_documents(self, term: str, max_results=None):
         document_ids = []
         result = []
         
@@ -95,7 +102,7 @@ class InvertedIndex:
 
             doc_description = f"{movie['title']} {movie['description']}"
             self.__add_document(doc_id, doc_description)
-            
+           
     def load(self) -> None:
         try:
             with open(self.index_path, "rb") as file:
@@ -104,12 +111,22 @@ class InvertedIndex:
                 self.docmap = pickle.load(file) 
             with open(self.term_freq_path, "rb") as file: 
                 self.term_frequencies = pickle.load(file)
+            with open(self.doc_lengths_path, "rb") as file:
+                self.doc_lengths = pickle.load(file)
         except FileNotFoundError:
             print("Cached files not found. Run 'build' command")
             raise
         except pickle.UnpicklingError:
             print("Cache corrupted. Run 'build' command again")
             raise
+            
+    def  __get_avg_doc_length(self):
+        if len(self.docmap) > 0:
+            sum = 0.0
+            for doc_length in self.doc_lengths:
+               sum += doc_length 
+            return sum
+        return 0.0
         
     def save(self) -> None:
         os.makedirs(CACHE_DIR, exist_ok=True)
@@ -120,7 +137,9 @@ class InvertedIndex:
             pickle.dump(self.docmap, f)
         with open(self.term_freq_path, "wb") as f:
             pickle.dump(self.term_frequencies, f)
-            
+        with open(self.doc_lengths_path, "wb") as f:
+            pickle.dump(self.doc_lengths, f)
+        
     def search(self, query):
         return
 
