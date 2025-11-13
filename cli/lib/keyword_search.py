@@ -124,7 +124,7 @@ class InvertedIndex:
         if len(self.docmap) > 0:
             sum = 0.0
             for doc_length in self.doc_lengths:
-               sum += doc_length 
+               sum += self.doc_lengths[doc_length] 
             return sum
         return 0.0
         
