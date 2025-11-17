@@ -1,6 +1,8 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
+from lib.search_utils import CACHE_DIR, load_movies
+
 _semantic_search_instance = None
 
 
@@ -31,13 +33,41 @@ class SemanticSearch:
         self.document_map = {}
         
     def build_embeddings(self, documents):
+        if not documents:
+            raise ValueError("Documents list cannot be empty")
+        
         self.documents = documents
         doc_descriptions = []
+        
         for doc in documents:
             self.document_map[doc["id"]] = doc
             doc_descriptions.append(f"{doc['title']}: {doc['description']}")
-        self.model.encode(doc_descriptions)
-         
+        try:
+            self.embeddings = self.model.encode(doc_descriptions, show_progress_bar=True)
+        except Exception as e:
+            raise RuntimeError("Failed to encode documents", e)
+
+        np.save(f"{CACHE_DIR}/movie_embeddings.npy", self.embeddings) 
+        return self.embeddings
+        
+    def load_or_create_embeddings(self, documents): 
+        if not documents:
+            raise ValueError("Documents list cannot be empty")
+
+        self.documents = documents
+        for doc in documents:
+            self.document_map[doc["id"]] = doc
+            
+        try: 
+            with open(f"{CACHE_DIR}/movie_embeddings.npy", "rb") as f:
+                self.embeddings = np.load(f)
+        except FileNotFoundError:
+            return self.build_embeddings(documents)
+            
+        if len(self.embeddings) != len(documents):
+            return self.build_embeddings(documents)
+        return self.embeddings
+        
     def generate_embedding(self, text):
         """Generate an embedding vector for the given text.
         
@@ -89,3 +119,10 @@ def get_model_info():
     """
     search = get_semantic_search()
     return search.get_model_info()
+
+def verify_embeddings():
+    search = get_semantic_search()
+    movies = load_movies()
+    embeddings = search.load_or_create_embeddings(movies)
+    print(f"Number of docs: {len(movies)}") 
+    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]}")

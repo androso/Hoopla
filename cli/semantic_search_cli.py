@@ -2,7 +2,7 @@
 
 import argparse
 
-from lib.semantic_search import embed_text, get_model_info
+from lib.semantic_search import embed_text, get_model_info, verify_embeddings
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -11,6 +11,8 @@ def main():
 
     embed_text_parser = subparser.add_parser("embed_text", help="Generate embeddings from text")
     embed_text_parser.add_argument("text", type=str, help="Text to generate embeddings from") 
+
+    subparser.add_parser("verify_embeddings", help="Helps verify generated embeddings")
     
     args = parser.parse_args()
     
@@ -19,6 +21,10 @@ def main():
             info = get_model_info()
             print(f"Model loaded: {info["model_name"]}")
             print(f"Max sequence length: {info["max_seq_length"]}")
+            
+        case "verify_embeddings":
+            verify_embeddings()
+            
         case "embed_text":
             text = embed_text(args.text)
             print(f"Text: {args.text}")
