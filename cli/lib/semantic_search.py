@@ -8,6 +8,7 @@ def get_semantic_search():
     """Get or create the singleton SemanticSearch instance."""
     global _semantic_search_instance
     if _semantic_search_instance is None:
+        print("building semantic search")
         _semantic_search_instance = SemanticSearch()
     return _semantic_search_instance
 
