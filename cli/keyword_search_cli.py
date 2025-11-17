@@ -37,7 +37,7 @@ def main() -> None:
     bm25search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring")    
     bm25search_parser.add_argument("query", type=str, help="Search query")
     bm25search_parser.add_argument("--limit", type=int, default=5, help="Limit to documents returned")
-    
+
     args = parser.parse_args()
 
     stop_words = load_stop_words()
