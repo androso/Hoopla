@@ -2,7 +2,7 @@
 
 import argparse
 
-from lib.semantic_search import embed_text, get_model_info, verify_embeddings
+from lib.semantic_search import embed_query_text, embed_text, get_model_info, verify_embeddings
 
 def main():
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -13,6 +13,8 @@ def main():
     embed_text_parser.add_argument("text", type=str, help="Text to generate embeddings from") 
 
     subparser.add_parser("verify_embeddings", help="Helps verify generated embeddings")
+    embed_query_parser = subparser.add_parser("embedquery", help="Helps embedding a query")
+    embed_query_parser.add_argument("query", type=str, help="The query to embed")
     
     args = parser.parse_args()
     
@@ -30,6 +32,9 @@ def main():
             print(f"Text: {args.text}")
             print(f"First 3 dimensions: {text[:3]}")
             print(f"Dimensions, {text.shape[0]}")
+            
+        case "embedquery":
+            embed_query_text(args.query)
         case _:
             parser.print_help()
 
