@@ -19,8 +19,8 @@ def main():
     match args.command:
         case "verify":
             info = get_model_info()
-            print(f"Model loaded: {info["model_name"]}")
-            print(f"Max sequence length: {info["max_seq_length"]}")
+            print(f"Model loaded: {info['model_name']}")
+            print(f"Max sequence length: {info['max_seq_length']}")
             
         case "verify_embeddings":
             verify_embeddings()

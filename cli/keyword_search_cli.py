@@ -89,7 +89,7 @@ def main() -> None:
             results = inverted_index.bm25_search(args.query, args.limit)
             
             for index, result in enumerate(results):
-                print(f"{index + 1}. ({result["id"]}) {result["title"]} - Score: {result["score"]:.2f}")
+                print(f"{index + 1}. ({result['id']}) {result['title']} - Score: {result['score']:.2f}")
                 
         case "tf":
             inverted_index = InvertedIndex()
