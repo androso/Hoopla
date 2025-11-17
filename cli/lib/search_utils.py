@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict, List
 import json
+import numpy as np
 
 DEFAULT_SEARCH_LIMIT = 5
 BM25_K1 = 1.5
@@ -10,6 +11,7 @@ DATA_PATH = os.path.join(PROJECT_ROOT, "data", "movies.json")
 STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
+MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 
 def load_movies() -> List[Dict[str, Any]]:
     with open(DATA_PATH, "r") as f:
@@ -20,3 +22,7 @@ def load_stop_words() -> List[str]:
     with open(STOPWORDS_PATH, "r") as f:
         stop_words = f.read().split("\n")
     return stop_words
+    
+def load_movie_embeddings():
+    with open(MOVIE_EMBEDDINGS_PATH, "rb") as f:
+        return np.load(f)

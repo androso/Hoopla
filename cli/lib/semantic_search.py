@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-from lib.search_utils import CACHE_DIR, load_movies
+from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies
 
 _semantic_search_instance = None
 
@@ -47,7 +47,7 @@ class SemanticSearch:
         except Exception as e:
             raise RuntimeError("Failed to encode documents", e)
 
-        np.save(f"{CACHE_DIR}/movie_embeddings.npy", self.embeddings) 
+        np.save(MOVIE_EMBEDDINGS_PATH, self.embeddings) 
         return self.embeddings
         
     def load_or_create_embeddings(self, documents): 
@@ -59,8 +59,7 @@ class SemanticSearch:
             self.document_map[doc["id"]] = doc
             
         try: 
-            with open(f"{CACHE_DIR}/movie_embeddings.npy", "rb") as f:
-                self.embeddings = np.load(f)
+            self.embeddings = load_movie_embeddings()
         except FileNotFoundError:
             return self.build_embeddings(documents)
             
