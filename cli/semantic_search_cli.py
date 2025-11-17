@@ -20,7 +20,10 @@ def main():
             print(f"Model loaded: {info["model_name"]}")
             print(f"Max sequence length: {info["max_seq_length"]}")
         case "embed_text":
-            embed_text(args.text)
+            text = embed_text(args.text)
+            print(f"Text: {args.text}")
+            print(f"First 3 dimensions: {text[:3]}")
+            print(f"Dimensions, {text.shape[0]}")
         case _:
             parser.print_help()
 

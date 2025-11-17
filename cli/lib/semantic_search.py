@@ -1,5 +1,5 @@
 from sentence_transformers import SentenceTransformer
-
+import numpy as np
 
 _semantic_search_instance = None
 
@@ -8,7 +8,6 @@ def get_semantic_search():
     """Get or create the singleton SemanticSearch instance."""
     global _semantic_search_instance
     if _semantic_search_instance is None:
-        print("building semantic search")
         _semantic_search_instance = SemanticSearch()
     return _semantic_search_instance
 
@@ -27,7 +26,18 @@ class SemanticSearch:
             self.model = SentenceTransformer(model_name)
         except Exception as e:
             raise RuntimeError(f"Failed to load model '{model_name}': {str(e)}")
-    
+        self.embeddings = None
+        self.documents = None
+        self.document_map = {}
+        
+    def build_embeddings(self, documents):
+        self.documents = documents
+        doc_descriptions = []
+        for doc in documents:
+            self.document_map[doc["id"]] = doc
+            doc_descriptions.append(f"{doc['title']}: {doc['description']}")
+        self.model.encode(doc_descriptions)
+         
     def generate_embedding(self, text):
         """Generate an embedding vector for the given text.
         
