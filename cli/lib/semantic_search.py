@@ -1,5 +1,6 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from torch import Value
 
 from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies
 
@@ -12,6 +13,16 @@ def get_semantic_search():
     if _semantic_search_instance is None:
         _semantic_search_instance = SemanticSearch()
     return _semantic_search_instance
+
+def cosine_similarity(vec1, vec2):
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+        
+    return dot_product / (norm1 * norm2)
 
 
 class SemanticSearch:
@@ -95,6 +106,20 @@ class SemanticSearch:
             "model_name": self.model_name,
             "max_seq_length": self.model.max_seq_length
         }
+        
+    def search(self, query, limit):
+        if self.embeddings is None:
+            raise ValueError("No embeddings loaded. Call `load_or_create_embeddings` first.")
+        query_embedding = self.generate_embedding(query)        
+        
+        results = []
+        for doc_embedding in self.embeddings:
+            similarity = cosine_similarity(query_embedding, doc_embedding)
+            
+            results.append((similarity, ))
+            
+        sorted_results = sorted(results, key=lambda x: x[0], reverse=True)
+        
 
 
 def embed_text(text):
