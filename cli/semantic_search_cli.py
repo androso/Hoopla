@@ -2,12 +2,10 @@
 
 import argparse
 
-from sentence_transformers.util import semantic_search
-
 from lib.search_utils import load_movies
-from lib.semantic_search import SemanticSearch, embed_query_text, embed_text, get_model_info, get_semantic_search, verify_embeddings
+from lib.semantic_search import embed_query_text, embed_text, get_model_info, get_semantic_search, verify_embeddings
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
     subparser = parser.add_subparsers(dest="command", help="Available commands")
     subparser.add_parser("verify")
@@ -46,7 +44,7 @@ def main():
             results = search.search(args.query, args.limit)
             
             for idx, result in enumerate(results):
-               print(f"{idx}. {result['title']} (score: {result['score']})") 
+               print(f"{idx + 1}. {result['title']} (score: {result['score']})") 
                # print(result['description'])
                 
         case "embedquery":
