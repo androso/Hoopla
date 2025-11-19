@@ -113,13 +113,22 @@ class SemanticSearch:
         query_embedding = self.generate_embedding(query)        
         
         results = []
-        for doc_embedding in self.embeddings:
+        for idx, doc_embedding in enumerate(self.embeddings):
             similarity = cosine_similarity(query_embedding, doc_embedding)
+            if self.documents:
+                doc = self.documents[idx] 
+                results.append((similarity, doc))
             
-            results.append((similarity, ))
-            
-        sorted_results = sorted(results, key=lambda x: x[0], reverse=True)
-        
+        sorted_results = sorted(results, key=lambda x: x[0], reverse=True)[:limit]
+        results = []
+        for score, doc in sorted_results:
+            result = {
+                'score': score,
+                'title': doc['title'],
+                'description': doc['description'] 
+            }
+            results.append(result) 
+        return results
 
 
 def embed_text(text):
