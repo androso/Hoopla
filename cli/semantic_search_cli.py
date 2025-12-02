@@ -20,6 +20,10 @@ def main() -> None:
     search_parser = subparser.add_parser("search", help="starts search")
     search_parser.add_argument("query", type=str, help="text to search")
     search_parser.add_argument("--limit", type=int, help="limit of results", default=5)
+
+    chunking_parser = subparser.add_parser("chunk", help="Start chunking")
+    chunking_parser.add_argument("position", type=int, help="Position for the text to chunk")
+    chunking_parser.add_argument("--chunk-size", type=int, default=200) 
     
     args = parser.parse_args()
     
@@ -31,7 +35,12 @@ def main() -> None:
             
         case "verify_embeddings":
             verify_embeddings()
-            
+        case "chunk":
+            search = get_semantic_search()
+            movies = load_movies()
+            search.load_or_create_embeddings(movies)
+
+                       
         case "embed_text":
             text = embed_text(args.text)
             print(f"Text: {args.text}")

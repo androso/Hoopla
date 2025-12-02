@@ -1,10 +1,10 @@
-modules = ["python-3.12", "go-1.24"]
+modules = ["go-1.24", "nodejs-20", "python-3.12"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["nano"]
+packages = ["nano", "gemini-cli"]
 
 [workflows]
 runButton = "Project"
