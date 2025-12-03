@@ -40,7 +40,6 @@ def main() -> None:
             words = args.text.split()
             chunks = []
             
-            # Validate overlap
             if args.overlap and args.overlap >= args.chunk_size:
                 print(f"Error: overlap ({args.overlap}) must be less than chunk_size ({args.chunk_size})")
                 return
