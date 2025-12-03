@@ -22,9 +22,9 @@ def main() -> None:
     search_parser.add_argument("--limit", type=int, help="limit of results", default=5)
 
     chunking_parser = subparser.add_parser("chunk", help="Start chunking")
-    chunking_parser.add_argument("position", type=int, help="Position for the text to chunk")
-    chunking_parser.add_argument("--chunk-size", type=int, default=200) 
-    
+    chunking_parser.add_argument("text", type=str, help="Text to chunk")
+    chunking_parser.add_argument("--chunk-size", type=int, default=200, help="Size of each chunk in words") 
+    chunking_parser.add_argument("--overlap", type=int, help="Overlap between chunks") 
     args = parser.parse_args()
     
     match args.command:
@@ -35,17 +35,30 @@ def main() -> None:
             
         case "verify_embeddings":
             verify_embeddings()
+            
         case "chunk":
-            search = get_semantic_search()
-            movies = load_movies()
-            search.load_or_create_embeddings(movies)
-
-                       
+            words = args.text.split()
+            chunks = []
+            
+            if args.overlap:
+                for chunk_idx in range(0, len(words), args.chunk_size):
+                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size - args.overlap])
+                   chunks.append(chunk)
+            else:
+                for chunk_idx in range(0, len(words), args.chunk_size):
+                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
+                   chunks.append(chunk)
+                    
+            print(f"Chunking {len(args.text)} characters")
+            for idx, chunk in enumerate(chunks, 1):
+                print(f"{idx}. {chunk}")
+                
         case "embed_text":
             text = embed_text(args.text)
             print(f"Text: {args.text}")
             print(f"First 3 dimensions: {text[:3]}")
             print(f"Dimensions, {text.shape[0]}")
+            
         case "search":
             search = get_semantic_search()
             movies = load_movies()
@@ -54,7 +67,6 @@ def main() -> None:
             
             for idx, result in enumerate(results):
                print(f"{idx + 1}. {result['title']} (score: {result['score']})") 
-               # print(result['description'])
                 
         case "embedquery":
             embed_query_text(args.query)
