@@ -40,7 +40,12 @@ def main() -> None:
             words = args.text.split()
             chunks = []
             
-            if args.overlap:
+            # Validate overlap
+            if args.overlap and args.overlap >= args.chunk_size:
+                print(f"Error: overlap ({args.overlap}) must be less than chunk_size ({args.chunk_size})")
+                return
+            
+            if args.overlap and args.overlap > 0:
                 step = args.chunk_size - args.overlap
                 for chunk_idx in range(0, len(words), step):
                    chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
