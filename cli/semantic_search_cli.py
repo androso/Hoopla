@@ -41,8 +41,9 @@ def main() -> None:
             chunks = []
             
             if args.overlap:
-                for chunk_idx in range(0, len(words), args.chunk_size):
-                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size - args.overlap])
+                step = args.chunk_size - args.overlap
+                for chunk_idx in range(0, len(words), step):
+                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
                    chunks.append(chunk)
             else:
                 for chunk_idx in range(0, len(words), args.chunk_size):
