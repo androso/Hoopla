@@ -38,21 +38,16 @@ def main() -> None:
             
         case "chunk":
             words = args.text.split()
-            chunks = []
             
             if args.overlap and args.overlap >= args.chunk_size:
                 print(f"Error: overlap ({args.overlap}) must be less than chunk_size ({args.chunk_size})")
                 return
-            
-            if args.overlap and args.overlap > 0:
-                step = args.chunk_size - args.overlap
-                for chunk_idx in range(0, len(words), step):
-                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
-                   chunks.append(chunk)
-            else:
-                for chunk_idx in range(0, len(words), args.chunk_size):
-                   chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
-                   chunks.append(chunk)
+                
+            chunks = [] 
+            step = args.chunk_size - (args.overlap or 0)
+            for chunk_idx in range(0, len(words), step):
+                chunk = " ".join(words[chunk_idx:chunk_idx + args.chunk_size])
+                chunks.append(chunk)
                     
             print(f"Chunking {len(args.text)} characters")
             for idx, chunk in enumerate(chunks, 1):
