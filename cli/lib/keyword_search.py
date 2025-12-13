@@ -14,10 +14,9 @@ def tokenize_text(text: str) -> List[str]:
     text = text.lower()
     text = remove_punctuation_from_str(text)
     tokens = text.split()
-    stop_words = load_stop_words()
-    tokens = remove_stop_words(tokens, stop_words)
+    tokens = remove_stop_words(tokens)
     tokens = stem_tokens(tokens)
-    
+
     return tokens
     
 class InvertedIndex:
@@ -190,7 +189,8 @@ def remove_punctuation_from_str(text: str) -> str:
     clean_text = text.translate(table)
     return clean_text
 
-def remove_stop_words(tkn_list, stop_words):
+def remove_stop_words(tkn_list):
+    stop_words = load_stop_words()
     result = []
     for tkn in tkn_list:
         if tkn in stop_words:
