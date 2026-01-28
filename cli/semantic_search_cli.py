@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-
+import re
 from lib.search_utils import load_movies
 from lib.semantic_search import embed_query_text, embed_text, get_model_info, get_semantic_search, verify_embeddings
 
@@ -25,6 +25,12 @@ def main() -> None:
     chunking_parser.add_argument("text", type=str, help="Text to chunk")
     chunking_parser.add_argument("--chunk-size", type=int, default=200, help="Size of each chunk in words") 
     chunking_parser.add_argument("--overlap", type=int, help="Overlap between chunks") 
+
+    semantic_chunking_parser = subparser.add_parser("semantic_chunk", help="Start semantic chunking")
+    semantic_chunking_parser.add_argument("text", type=str, help="Text to chunk")
+    semantic_chunking_parser.add_argument("--max-chunk-size", type=int, default=4)
+    semantic_chunking_parser.add_argument("--overlap", type=int, default=0)
+
     args = parser.parse_args()
     
     match args.command:
@@ -52,12 +58,26 @@ def main() -> None:
             print(f"Chunking {len(args.text)} characters")
             for idx, chunk in enumerate(chunks, 1):
                 print(f"{idx}. {chunk}")
-                
+
+        case "semantic_chunk": 
+            pattern = r"(?<=[.!?])\s+"
+            sentences = re.split(pattern, args.text) 
+            step = args.max_chunk_size - (args.overlap or 0) 
+            chunks = []
+
+            for chunk_idx in range(0, len(sentences), step):
+                chunk = " ".join(sentences[chunk_idx:chunk_idx + args.max_chunk_size])
+                chunks.append(chunk)
+
+            print(f"Semantically chunking {len(args.text)} characters")
+            for idx, chunk in enumerate(chunks, 1):
+                print(f"{idx}. {chunk}")
+
         case "embed_text":
             text = embed_text(args.text)
             print(f"Text: {args.text}")
             print(f"First 3 dimensions: {text[:3]}")
-            print(f"Dimensions, {text.shape[0]}")
+            print(f"Dimensions: {text.shape[0]}")
             
         case "search":
             search = get_semantic_search()
