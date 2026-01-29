@@ -46,7 +46,6 @@ def main() -> None:
         case "build":
             print(f"First document for token 'merida' = 4651")
             print("Building inverted index...")
-            movies = load_movies()
             inverted_index = InvertedIndex()
             inverted_index.build()
             inverted_index.save()

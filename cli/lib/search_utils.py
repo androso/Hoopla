@@ -12,6 +12,17 @@ STOPWORDS_PATH = os.path.join(PROJECT_ROOT, "data", "stopwords.txt")
 
 CACHE_DIR = os.path.join(PROJECT_ROOT, "cache")
 MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
+MOVIE_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
+METADATA_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
+
+def load_metadata_chunk_embeddings():
+    with open(METADATA_CHUNK_EMBEDDINGS_PATH, "r") as f:
+        data = json.load(f)
+        return data
+
+def load_chunk_embeddings():
+    with open(MOVIE_CHUNK_EMBEDDINGS_PATH, "rb") as f:
+        return np.load(f)
 
 def load_movies() -> List[Dict[str, Any]]:
     with open(DATA_PATH, "r") as f:

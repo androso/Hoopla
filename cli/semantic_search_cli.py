@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-import re
 from lib.search_utils import load_movies
-from lib.semantic_search import embed_query_text, embed_text, get_model_info, get_semantic_search, verify_embeddings
+from lib.semantic_search import embed_query_text, embed_text, get_model_info, get_semantic_search, verify_embeddings, get_chunked_semantic_search, get_semantic_chunks
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -31,6 +30,8 @@ def main() -> None:
     semantic_chunking_parser.add_argument("--max-chunk-size", type=int, default=4)
     semantic_chunking_parser.add_argument("--overlap", type=int, default=0)
 
+    embed_chunks_parser = subparser.add_parser("embed_chunks", help="generate chunked embeddings")
+    
     args = parser.parse_args()
     
     match args.command:
@@ -60,18 +61,16 @@ def main() -> None:
                 print(f"{idx}. {chunk}")
 
         case "semantic_chunk": 
-            pattern = r"(?<=[.!?])\s+"
-            sentences = re.split(pattern, args.text) 
-            step = args.max_chunk_size - (args.overlap or 0) 
-            chunks = []
-
-            for chunk_idx in range(0, len(sentences), step):
-                chunk = " ".join(sentences[chunk_idx:chunk_idx + args.max_chunk_size])
-                chunks.append(chunk)
-
+            chunks = get_semantic_chunks(args.text, args.max_chunk_size, args.overlap)
             print(f"Semantically chunking {len(args.text)} characters")
             for idx, chunk in enumerate(chunks, 1):
                 print(f"{idx}. {chunk}")
+
+        case "embed_chunks":
+            movies = load_movies()
+            instance = get_chunked_semantic_search() 
+            embeddings = instance.load_or_create_chunk_embeddings(movies)
+            print(f"Generated {len(embeddings)} chunked embeddings") 
 
         case "embed_text":
             text = embed_text(args.text)

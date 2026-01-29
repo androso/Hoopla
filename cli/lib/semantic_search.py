@@ -1,12 +1,21 @@
 from typing import List, Dict, Optional, Any
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from numpy.typing import NDArray
+import json 
+import re
 
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies
+from numpy.typing import NDArray
+from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH
 
 _semantic_search_instance: Optional['SemanticSearch'] = None
+_chunked_semantic_search_instance: Optional['ChunkedSemanticSearch'] = None
 
+def get_chunked_semantic_search() -> 'ChunkedSemanticSearch':
+    global _chunked_semantic_search_instance
+    if _chunked_semantic_search_instance is None:
+        _chunked_semantic_search_instance = ChunkedSemanticSearch()
+
+    return _chunked_semantic_search_instance
 
 def get_semantic_search() -> 'SemanticSearch':
     """Get or create the singleton SemanticSearch instance."""
@@ -14,6 +23,21 @@ def get_semantic_search() -> 'SemanticSearch':
     if _semantic_search_instance is None:
         _semantic_search_instance = SemanticSearch()
     return _semantic_search_instance
+
+def get_semantic_chunks(text, max_chunk_size, overlap) -> str:
+    pattern = r"(?<=[.!?])\s+"
+    sentences = re.split(pattern, text) 
+    step = max_chunk_size - (overlap or 0) 
+    chunks = []
+
+    for chunk_idx in range(0, len(sentences), step):
+        chunk_sentences = sentences[chunk_idx:chunk_idx + max_chunk_size]
+        chunk = " ".join(chunk_sentences)
+        if chunks and len(chunk_sentences) <= overlap:
+            break
+        chunks.append(chunk)
+
+    return chunks
 
 def cosine_similarity(vec1: NDArray[np.floating[Any]], vec2: NDArray[np.floating[Any]]) -> float:
     """Calculate cosine similarity between two vectors.
@@ -77,7 +101,7 @@ class SemanticSearch:
         
         self.documents = documents
         doc_descriptions: List[str] = []
-        
+ 
         for doc in documents:
             self.document_map[doc["id"]] = doc
             doc_descriptions.append(f"{doc['title']}: {doc['description']}")
@@ -181,6 +205,59 @@ class SemanticSearch:
             formatted_results.append(result) 
         return formatted_results
 
+class ChunkedSemanticSearch(SemanticSearch):
+    def __init__(self, model_name = "all-MiniLM-L6-v2") -> None:
+        super().__init__(model_name)
+        self.chunk_embeddings = None
+        self.chunk_metadata = None
+
+    def build_chunk_embeddings(self, documents):
+        if not documents:
+            raise ValueError("Documents list cannot be empty")
+
+        self.documents = documents 
+        chunks = []
+        chunks_meta = []
+        total_doc_chunks = 0
+        for movie_idx, doc in enumerate(documents):
+            if not doc["description"] :
+                continue
+            self.document_map[doc["id"]] = doc
+            doc_chunks = get_semantic_chunks(doc["description"], 4, 1)
+            total_doc_chunks += len(doc_chunks) 
+            chunks.extend(doc_chunks)
+            for chunk_idx, chunk in enumerate(doc_chunks):
+                chunks_meta.append({
+                    "movie_idx": movie_idx,
+                    "chunk_idx": chunk_idx,
+                    "total_chunks": len(doc_chunks)
+                })
+
+        print(total_doc_chunks)
+        try:
+            self.chunk_embeddings = self.model.encode(chunks, show_progress_bar=True)
+            self.chunk_metadata = chunks_meta
+        except Exception as e:
+            raise RuntimeError(f"Failed to encode documents: {str(e)}")
+        np.save(MOVIE_CHUNK_EMBEDDINGS_PATH, self.chunk_embeddings) 
+        with open(METADATA_CHUNK_EMBEDDINGS_PATH, "w") as f:
+            json.dump({"chunks": self.chunk_metadata, "total_chunks": len(chunks)}, f, indent=2)
+        return self.chunk_embeddings
+
+    def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
+        if not documents:
+            raise ValueError("Document list cannot be empty")
+        self.documents = documents 
+        for doc in documents:
+            self.document_map[doc["id"]] = doc
+
+        try:
+            self.chunk_embeddings = load_chunk_embeddings()
+            self.chunk_metadata = load_metadata_chunk_embeddings()
+            return self.chunk_embeddings
+        except FileNotFoundError:
+            return self.build_chunk_embeddings(documents)
+    
 
 def embed_text(text: str) -> NDArray[np.floating[Any]]:
     """Generate embedding for text using the cached model instance.
