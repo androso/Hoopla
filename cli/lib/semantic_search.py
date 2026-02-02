@@ -5,7 +5,7 @@ import json
 import re
 
 from numpy.typing import NDArray
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH
+from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH, cosine_similarity, SCORE_PRECISION
 
 _semantic_search_instance: Optional['SemanticSearch'] = None
 _chunked_semantic_search_instance: Optional['ChunkedSemanticSearch'] = None
@@ -257,7 +257,44 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.chunk_embeddings
         except FileNotFoundError:
             return self.build_chunk_embeddings(documents)
-    
+
+    def search_chunks(self, query:str, limit:int = 10):
+        print("[search_chunks] Generating query embedding")
+        query_embedding = self.generate_embedding(query) 
+        print("[search_chunks] Scoring chunks")
+        chunk_scores = []
+        movie_score = {}
+        print(f"[search_chunks] Total chunks: {len(self.chunk_embeddings)}")
+        for chunk_idx, chunk in enumerate(self.chunk_embeddings):
+            similarity = cosine_similarity(query_embedding, chunk) 
+            meta = self.chunk_metadata["chunks"][chunk_idx]
+            chunk_scores.append({
+                "chunk_idx": chunk_idx,
+                "movie_idx": meta["movie_idx"],
+                "score": similarity
+            })
+            score = movie_score.get(meta["movie_idx"], float("-inf"))
+            if similarity > score:
+                movie_score[meta["movie_idx"]] = similarity
+
+        print(f"[search_chunks] Aggregated scores for {len(movie_score)} movies")
+        print("[search_chunks] Sorting results")
+        sorted_scores = sorted(movie_score.items(), key=lambda kv: kv[1], reverse=True)
+        top_items = sorted_scores[:limit] 
+        print(f"[search_chunks] Preparing top {len(top_items)} results")
+        results = []
+        for movie_idx, score in top_items:
+            for doc in [self.documents[movie_idx]]:
+                results.append({
+                    "id": doc["id"],
+                    "title": doc.get("title", ""),
+                    "document": (doc.get("description") or "")[:100],
+                    "score": round(score, SCORE_PRECISION),
+                    "metadata": doc.get("metadata") or {}
+                })
+        return results
+        
+
 
 def embed_text(text: str) -> NDArray[np.floating[Any]]:
     """Generate embedding for text using the cached model instance.
@@ -300,4 +337,3 @@ def embed_query_text(query: str) -> None:
     print(f"Query: {query}") 
     print(f"First 5 dimensions: {embedding[:5]}")
     print(f"Shape: {embedding.shape}")
-
