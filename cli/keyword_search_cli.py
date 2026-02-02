@@ -1,7 +1,15 @@
 import argparse
-import pickle
-from lib.keyword_search import InvertedIndex, search_movie
-from lib.search_utils import BM25_B, BM25_K1, load_movies, load_stop_words
+from lib.keyword_search import (
+    bm25_idf_command,
+    bm25_tf_command,
+    bm25search_command,
+    build_command,
+    idf_command,
+    search_command,
+    tf_command,
+    tfidf_command,
+)
+from lib.search_utils import BM25_B, BM25_K1
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -40,75 +48,42 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    stop_words = load_stop_words()
-
     match args.command:
         case "build":
-            print(f"First document for token 'merida' = 4651")
             print("Building inverted index...")
-            inverted_index = InvertedIndex()
-            inverted_index.build()
-            inverted_index.save()
-            print("Index built and saved!")
-            
-        case "idf":
-            print("Calculating IDF")
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            idf = inverted_index.get_idf(args.term)
-         
-            print(f"Inverse document frequency of '{args.term}': {idf:.2f}") 
-            
-        case "tfidf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            tf_idf = inverted_index.get_tf_idf(args.doc_id, args.term)
-            print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
-            
-        case "bm25idf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            bm25idf = inverted_index.get_bm25_idf(args.term)
-            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
-            
+            build_command()
+            print("Inverted index built successfully.")
         case "search":
             print("Searching for:", args.query)
-            inverted_index = InvertedIndex()
-            try:
-                inverted_index.load()
-            except(FileNotFoundError, pickle.UnpicklingError):
-                print("Error: Index not found. Please run 'build' command first") 
-                return
-                
-            results = search_movie(inverted_index, args.query)
-            print(results) 
-            
-        case "bm25search":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            results = inverted_index.bm25_search(args.query, args.limit)
-            
-            for index, result in enumerate(results):
-                print(f"{index + 1}. ({result['id']}) {result['title']} - Score: {result['score']:.2f}")
-                
+            results = search_command(args.query)
+            for i, res in enumerate(results, 1):
+                print(f"{i}. ({res['id']}) {res['title']}")
         case "tf":
-            inverted_index = InvertedIndex()
-            inverted_index.load()
-            count = inverted_index.get_tf(args.doc_id, args.term)
-            print(count)
-            
+            tf = tf_command(args.doc_id, args.term)
+            print(f"Term frequency of '{args.term}' in document '{args.doc_id}': {tf}")
+        case "idf":
+            idf = idf_command(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+        case "tfidf":
+            tf_idf = tfidf_command(args.doc_id, args.term)
+            print(
+                f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}"
+            )
+        case "bm25idf":
+            bm25idf = bm25_idf_command(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25idf:.2f}")
         case "bm25tf":
-            inverted_index = InvertedIndex() 
-            inverted_index.load()
-            bm25_tf = inverted_index.get_bm25_tf(args.doc_id, args.term, args.k1, args.b)
-            print("2.31") 
-            print("    2.17")
-            print("    2.00")
-            print(f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25_tf:.2f}")
-
+            bm25tf = bm25_tf_command(args.doc_id, args.term, args.k1, args.b)
+            print(
+                f"BM25 TF score of '{args.term}' in document '{args.doc_id}': {bm25tf:.2f}"
+            )
+        case "bm25search":
+            print("Searching for:", args.query)
+            results = bm25search_command(args.query, args.limit)
+            for i, res in enumerate(results, 1):
+                print(f"{i}. ({res['id']}) {res['title']} - Score: {res['score']:.2f}")
         case _:
-            parser.print_help()
-
+            parser.print_help() 
 
 if __name__ == "__main__":
     main()

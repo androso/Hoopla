@@ -4,10 +4,16 @@ import pickle
 import string
 from typing import Any, Dict, List, Set
 from nltk.stem import PorterStemmer
-from lib.search_utils import BM25_B, BM25_K1, CACHE_DIR, load_movies, load_stop_words
+from lib.search_utils import (
+    BM25_B,
+    BM25_K1,
+    CACHE_DIR,
+    DEFAULT_SEARCH_LIMIT,
+    load_movies,
+    load_stop_words
+)
 import math
 
-MAX_RESULTS = 5
 stemmer = PorterStemmer()
 
 def tokenize_text(text: str) -> List[str]:
@@ -175,15 +181,6 @@ class InvertedIndex:
 
         return doc_results 
         
-    def search(self, query):
-        query_tokenized = tokenize_text(query) 
-        document_ids = []
-
-        for token in query_tokenized:
-            document_ids.extend(self.get_documents(token, MAX_RESULTS))
-            
-        return document_ids
-
 def remove_punctuation_from_str(text: str) -> str:
     table = str.maketrans("", "", string.punctuation)
     clean_text = text.translate(table)
@@ -205,13 +202,55 @@ def stem_tokens(tkn_list):
     for tkn in tkn_list:
         result.append(stemmer.stem(tkn))
     return result
+def build_command():
+    idx = InvertedIndex()
+    idx.build()
+    idx.save()
 
+def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+    idx = InvertedIndex()
+    idx.load()
+    query_tokens = tokenize_text(query)
+    seen, results = set(), []
+    for query_token in query_tokens:
+        matching_docs = idx.get_documents(query_token)
+        for doc in matching_docs:
+            doc_id = doc["id"]
+            if doc_id in seen:
+                continue
+            seen.add(doc_id)
+            results.append(doc)
+            if len(results) >= limit:
+                return results
 
-def search_movie(inverted_index: InvertedIndex, query: str):
-    query_tokenized = tokenize_text(query)
-    document_ids = []
-    
-    for token in query_tokenized:
-        document_ids.extend(inverted_index.get_documents(token, MAX_RESULTS))
-        
-    return document_ids 
+    return results
+
+def tf_command(doc_id: int, term: str) -> int:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf(doc_id, term)
+
+def idf_command(term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_idf(term)
+
+def tfidf_command(doc_id: int, term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf_idf(doc_id, term)
+
+def bm25_idf_command(term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_idf(term)
+
+def bm25_tf_command(doc_id: int, term: str, k1: float = BM25_K1, b: float = BM25_B) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_tf(doc_id, term, k1, b)
+
+def bm25search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.bm25_search(query, limit)
