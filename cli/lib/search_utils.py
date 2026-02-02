@@ -5,6 +5,10 @@ import numpy as np
 DEFAULT_SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
 
+DEFAULT_CHUNK_SIZE = 200
+DEFAULT_CHUNK_OVERLAP = 1 
+DEFAULT_SEMANTIC_CHUNK_SIZE = 4
+
 BM25_K1 = 1.5
 BM25_B = 0.75
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

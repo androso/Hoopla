@@ -303,14 +303,6 @@ def get_model_info() -> Dict[str, Any]:
     search = get_semantic_search()
     return search.get_model_info()
 
-def verify_embeddings() -> None:
-    """Verify embeddings by loading/creating them and printing their shape."""
-    search = get_semantic_search()
-    movies = load_movies()
-    embeddings = search.load_or_create_embeddings(movies)
-    print(f"Number of docs: {len(movies)}") 
-    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]}")
-
 def embed_query_text(query: str) -> None:
     """Embed a query and print its properties.
     
@@ -322,3 +314,70 @@ def embed_query_text(query: str) -> None:
     print(f"Query: {query}") 
     print(f"First 5 dimensions: {embedding[:5]}")
     print(f"Shape: {embedding.shape}")
+
+
+
+## COMMANDS ACTIONS
+def verify_model():
+    search_instance = get_semantic_search()
+    print(f"Model loaded: {search_instance.model}")
+    print(f"Max sequence length: {search_instance.model.max_seq_length}")
+    
+def verify_embeddings() -> None:
+    """Verify embeddings by loading/creating them and printing their shape."""
+    search = get_semantic_search()
+    movies = load_movies()
+    embeddings = search.load_or_create_embeddings(movies)
+    print(f"Number of docs: {len(movies)}") 
+    print(f"Embeddings shape: {embeddings.shape[0]} vectors in {embeddings.shape[1]}")
+
+def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP) -> list[str]:
+    words = text.split()
+    chunks = []
+
+    n_words = len(words)
+    i = 0
+
+    step = chunk_size - (overlap or 0) 
+    for chunk_idx in range(0, len(words), step):
+        chunk_words = words[chunk_idx : chunk_idx + chunk_size]
+        if chunks and len(chunk_words) <= overlap:
+            break
+        chunks.append(" ".join(chunk_words))
+    return chunks
+
+def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP):
+    chunks = fixed_size_chunking(text, chunk_size, overlap)
+    print(f"Chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks):
+        print(f"{i + 1}. {chunk}")
+
+
+def semantic_chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = DEFAULT_CHUNK_OVERLAP):
+    chunks = get_semantic_chunks(text, chunk_size, overlap)
+    print(f"Semantically chunking {len(text)} characters")
+
+    for idx, chunk in enumerate(chunks, 1):
+        print(f"{idx}. {chunk}")
+
+def embed_chunks_command():
+    movies = load_movies()
+    instance = get_chunked_semantic_search() 
+    embeddings = instance.load_or_create_chunk_embeddings(movies)
+    return embeddings
+
+def search_chunked_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> dict:
+    movies = load_movies()
+    searcher = get_chunked_semantic_search()
+    searcher.load_or_create_chunk_embeddings(movies)
+    results = instance.search_chunks(args.query, args.limit)
+    return {"query": query, "results": results}
+
+def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
+    search = get_semantic_search()
+    movies = load_movies()
+    search.load_or_create_embeddings(movies)
+    results = search.search(query, limit)
+
+    for idx, result in enumerate(results):
+        print(f"{idx + 1}. {result['title']} (score: {result['score']})") 
