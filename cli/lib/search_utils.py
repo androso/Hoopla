@@ -16,32 +16,20 @@ MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 MOVIE_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
 METADATA_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 
-def dot(vec1, vec2):
-    if len(vec1) != len(vec2):
-        raise ValueError(f"Vectors must have the same length. Got {len(vec1)} and {len(vec2)}.") 
-    total = 0.0
-    for i in range(len(vec1)):
-        total += vec1[i] * vec2[i]
+def cosine_similarity(vec1, vec2) -> float:
+    """Calculate cosine similarity between two vectors.
 
-def euclidean_norm(vec):
-    total = 0.0
-    for x in vec:
-        total += x**2
+    Returns:
+        Cosine similarity score between -1 and 1.
+    """
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
 
-    return total**0.5
-
-def cosine_similarity(vec1, vec2):
-    if len(vec1) != len(vec2):
-        raise ValueError(f"Vectors must have the same length. Got {len(vec1)} and {len(vec2)}.")
-    
-    dot_product = dot(vec1, vec2)
-    magnitude1 = euclidean_norm(vec1)
-    magnitude2 = euclidean_norm(vec2)
-
-    if magnitude1 == 0 or magnitude2 == 0:
+    if norm1 == 0 or norm2 == 0:
         return 0.0
-    
-    return dot_product / (magnitude1 * magnitude2)
+
+    return float(dot_product / (norm1 * norm2))
 
 def load_metadata_chunk_embeddings():
     with open(METADATA_CHUNK_EMBEDDINGS_PATH, "r") as f:

@@ -24,7 +24,7 @@ def get_semantic_search() -> 'SemanticSearch':
         _semantic_search_instance = SemanticSearch()
     return _semantic_search_instance
 
-def get_semantic_chunks(text, max_chunk_size, overlap) -> str:
+def get_semantic_chunks(text, max_chunk_size, overlap) -> list[str]:
     pattern = r"(?<=[.!?])\s+"
     sentences = re.split(pattern, text) 
     step = max_chunk_size - (overlap or 0) 
@@ -38,26 +38,6 @@ def get_semantic_chunks(text, max_chunk_size, overlap) -> str:
         chunks.append(chunk)
 
     return chunks
-
-def cosine_similarity(vec1: NDArray[np.floating[Any]], vec2: NDArray[np.floating[Any]]) -> float:
-    """Calculate cosine similarity between two vectors.
-    
-    Args:
-        vec1: First embedding vector
-        vec2: Second embedding vector
-        
-    Returns:
-        Cosine similarity score between 0 and 1
-    """
-    dot_product = np.dot(vec1, vec2)
-    norm1 = np.linalg.norm(vec1)
-    norm2 = np.linalg.norm(vec2)
-
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-        
-    return float(dot_product / (norm1 * norm2))
-
 
 class SemanticSearch:
     """Handles semantic search operations using sentence transformers."""
@@ -220,7 +200,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         chunks_meta = []
         total_doc_chunks = 0
         for movie_idx, doc in enumerate(documents):
-            if not doc["description"] :
+            if not doc["description"]:
                 continue
             self.document_map[doc["id"]] = doc
             doc_chunks = get_semantic_chunks(doc["description"], 4, 1)
@@ -236,12 +216,16 @@ class ChunkedSemanticSearch(SemanticSearch):
         print(total_doc_chunks)
         try:
             self.chunk_embeddings = self.model.encode(chunks, show_progress_bar=True)
-            self.chunk_metadata = chunks_meta
+            self.chunk_metadata = {
+                "chunks": chunks_meta,
+                "total_chunks": len(chunks)
+            } 
         except Exception as e:
             raise RuntimeError(f"Failed to encode documents: {str(e)}")
         np.save(MOVIE_CHUNK_EMBEDDINGS_PATH, self.chunk_embeddings) 
         with open(METADATA_CHUNK_EMBEDDINGS_PATH, "w") as f:
-            json.dump({"chunks": self.chunk_metadata, "total_chunks": len(chunks)}, f, indent=2)
+            json.dump(self.chunk_metadata, f, indent=2)
+            # json.dump({"chunks": self.chunk_metadata, "total_chunks": len(chunks)}, f, indent=2)
         return self.chunk_embeddings
 
     def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
@@ -259,6 +243,8 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.build_chunk_embeddings(documents)
 
     def search_chunks(self, query:str, limit:int = 10):
+        if self.chunk_embeddings is None or self.chunk_metadata is None: 
+            raise ValueError("No embeddings loaded. Call `load_or_create_chunk_embeddings` first.")
         print("[search_chunks] Generating query embedding")
         query_embedding = self.generate_embedding(query) 
         print("[search_chunks] Scoring chunks")
