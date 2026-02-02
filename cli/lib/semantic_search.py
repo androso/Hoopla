@@ -248,7 +248,6 @@ class ChunkedSemanticSearch(SemanticSearch):
         print("[search_chunks] Generating query embedding")
         query_embedding = self.generate_embedding(query) 
         print("[search_chunks] Scoring chunks")
-        chunk_scores = []
         movie_score = {}
         print(f"[search_chunks] Total chunks: {len(self.chunk_embeddings)}")
         for chunk_idx, chunk in enumerate(self.chunk_embeddings):
