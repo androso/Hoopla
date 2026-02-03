@@ -5,7 +5,7 @@ import json
 import re
 
 from numpy.typing import NDArray
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH, cosine_similarity, SCORE_PRECISION
+from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH, cosine_similarity, SCORE_PRECISION, DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, DEFAULT_SEARCH_LIMIT
 
 _semantic_search_instance: Optional['SemanticSearch'] = None
 _chunked_semantic_search_instance: Optional['ChunkedSemanticSearch'] = None
@@ -25,16 +25,32 @@ def get_semantic_search() -> 'SemanticSearch':
     return _semantic_search_instance
 
 def get_semantic_chunks(text, max_chunk_size, overlap) -> list[str]:
+    text = text.strip()
+    if not text:
+        return []
+
     pattern = r"(?<=[.!?])\s+"
     sentences = re.split(pattern, text) 
+
+    if len(sentences) == 1:
+        last_item = sentences[0][-1]
+        if last_item != "." and last_item != "!" and last_item != "?":
+            return sentences
+
     step = max_chunk_size - (overlap or 0) 
     chunks = []
+    cleaned_sentences = []
+    for sentence in sentences: 
+        stripped_sentence = sentence.strip()
+        if stripped_sentence != "":
+            cleaned_sentences.append(sentence.strip())
 
-    for chunk_idx in range(0, len(sentences), step):
-        chunk_sentences = sentences[chunk_idx:chunk_idx + max_chunk_size]
+    for chunk_idx in range(0, len(cleaned_sentences), step):
+        chunk_sentences = cleaned_sentences[chunk_idx:chunk_idx + max_chunk_size]
         chunk = " ".join(chunk_sentences)
         if chunks and len(chunk_sentences) <= overlap:
             break
+        
         chunks.append(chunk)
 
     return chunks
@@ -249,6 +265,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         query_embedding = self.generate_embedding(query) 
         print("[search_chunks] Scoring chunks")
         movie_score = {}
+        chunk_scores = []
         print(f"[search_chunks] Total chunks: {len(self.chunk_embeddings)}")
         for chunk_idx, chunk in enumerate(self.chunk_embeddings):
             similarity = cosine_similarity(query_embedding, chunk) 
@@ -273,7 +290,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                 results.append({
                     "id": doc["id"],
                     "title": doc.get("title", ""),
-                    "document": (doc.get("description") or "")[:100],
+                    "document": (doc.get("description") or ""),
                     "score": round(score, SCORE_PRECISION),
                     "metadata": doc.get("metadata") or {}
                 })
@@ -370,7 +387,7 @@ def search_chunked_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> dic
     movies = load_movies()
     searcher = get_chunked_semantic_search()
     searcher.load_or_create_chunk_embeddings(movies)
-    results = instance.search_chunks(args.query, args.limit)
+    results = searcher.search_chunks(query, limit)
     return {"query": query, "results": results}
 
 def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
