@@ -20,6 +20,27 @@ MOVIE_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "movie_embeddings.npy")
 MOVIE_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
 METADATA_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 
+DEFAULT_ALPHA = 0.5
+
+def format_search_results(doc_id: str, title: str, document: str, score: float, **metadata: any) -> dict[str, any]:
+    """Create standardized search result
+    Args:
+        doc_id: Document ID
+        title: Document title
+        document: Display text (usually short description) 
+        score: Relevance/similarity score
+        **metadata: Additional metadata to include
+    Returns:
+        Dictionary representation of search result
+    """
+    return {
+        "id": doc_id,
+        "title": title,
+        "document": document[:100],
+        "score": round(score, SCORE_PRECISION),
+        "metadata": metadata if metadata else {}
+    }
+
 def cosine_similarity(vec1, vec2) -> float:
     """Calculate cosine similarity between two vectors.
 

@@ -82,6 +82,10 @@ def main() -> None:
             results = bm25search_command(args.query, args.limit)
             for i, res in enumerate(results, 1):
                 print(f"{i}. ({res['id']}) {res['title']} - Score: {res['score']:.2f}")
+                if "document" in res:
+                    print(f"   {res['document']}")
+                if res.get("metadata"):
+                    print(f"   metadata: {res['metadata']}")
         case _:
             parser.print_help() 
 

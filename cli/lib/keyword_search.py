@@ -10,7 +10,8 @@ from lib.search_utils import (
     CACHE_DIR,
     DEFAULT_SEARCH_LIMIT,
     load_movies,
-    load_stop_words
+    load_stop_words, 
+    format_search_results
 )
 import math
 
@@ -175,9 +176,14 @@ class InvertedIndex:
 
         doc_results = []
         for doc_id, score in sorted_results:
-            result = self.docmap[doc_id].copy()
-            result['score'] = score
-            doc_results.append(result)
+            doc = self.docmap[doc_id]
+            formatted_result = format_search_results(
+                doc_id=doc['id'],
+                title=doc['title'],
+                document=doc['description'],
+                score=score
+            )
+            doc_results.append(formatted_result)
 
         return doc_results 
         
