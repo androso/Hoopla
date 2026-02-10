@@ -2,7 +2,9 @@ import os
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
-from .search_utils import load_movies, DEFAULT_SEARCH_LIMIT, DEFAULT_ALPHA, format_search_results, DEFAULT_K
+from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
+from .search.formatting import format_search_results
+from .search.loaders import load_movies
 
 class HybridSearch:
     def __init__(self, documents):

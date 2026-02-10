@@ -9,7 +9,7 @@ from lib.keyword_search import (
     tf_command,
     tfidf_command,
 )
-from lib.search_utils import BM25_B, BM25_K1
+from lib.search.constants import BM25_B, BM25_K1
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")

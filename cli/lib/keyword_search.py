@@ -4,14 +4,16 @@ import pickle
 import string
 from typing import Any, Dict, List, Set
 from nltk.stem import PorterStemmer
-from lib.search_utils import (
+from lib.search.constants import (
     BM25_B,
     BM25_K1,
     CACHE_DIR,
     DEFAULT_SEARCH_LIMIT,
+)
+from lib.search.formatting import format_search_results
+from lib.search.loaders import (
     load_movies,
-    load_stop_words, 
-    format_search_results
+    load_stop_words,
 )
 import math
 

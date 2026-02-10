@@ -6,8 +6,6 @@ from lib.hybrid_search import (
     rrf_search_command
 )
 
-from lib.search_utils import load_movies
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparser = parser.add_subparsers(dest="command", help="Available commands")

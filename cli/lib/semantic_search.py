@@ -5,7 +5,22 @@ import json
 import re
 
 from numpy.typing import NDArray
-from lib.search_utils import MOVIE_EMBEDDINGS_PATH, load_movie_embeddings, load_movies, load_chunk_embeddings, load_metadata_chunk_embeddings, MOVIE_CHUNK_EMBEDDINGS_PATH, METADATA_CHUNK_EMBEDDINGS_PATH, cosine_similarity, SCORE_PRECISION, DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP, DEFAULT_SEARCH_LIMIT
+from lib.search.constants import (
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_SEARCH_LIMIT,
+    METADATA_CHUNK_EMBEDDINGS_PATH,
+    MOVIE_CHUNK_EMBEDDINGS_PATH,
+    MOVIE_EMBEDDINGS_PATH,
+    SCORE_PRECISION,
+)
+from lib.search.loaders import (
+    load_chunk_embeddings,
+    load_metadata_chunk_embeddings,
+    load_movie_embeddings,
+    load_movies,
+)
+from lib.search.scoring import cosine_similarity
 
 _semantic_search_instance: Optional['SemanticSearch'] = None
 _chunked_semantic_search_instance: Optional['ChunkedSemanticSearch'] = None
