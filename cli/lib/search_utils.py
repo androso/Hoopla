@@ -21,6 +21,7 @@ MOVIE_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_embeddings.npy")
 METADATA_CHUNK_EMBEDDINGS_PATH = os.path.join(CACHE_DIR, "chunk_metadata.json")
 
 DEFAULT_ALPHA = 0.5
+DEFAULT_K = 60
 
 def format_search_results(doc_id: str, title: str, document: str, score: float, **metadata: any) -> dict[str, any]:
     """Create standardized search result
