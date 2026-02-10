@@ -1,10 +1,46 @@
 import os
+from dataclasses import dataclass
+from typing import Protocol
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
-from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
+from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT, RETRIEVAL_EXPANSION_FACTOR
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
+
+class FusionStrategy(Protocol):
+    def fuse(
+        self,
+        bm25_results: list[dict],
+        semantic_results: list[dict],
+        limit: int,
+    ) -> list[dict]:
+        ...
+
+@dataclass(frozen=True)
+class WeightedFusion:
+    alpha: float = DEFAULT_ALPHA
+
+    def fuse(
+        self,
+        bm25_results: list[dict],
+        semantic_results: list[dict],
+        limit: int,
+    ) -> list[dict]:
+        return combine_search_results(bm25_results, semantic_results, self.alpha)[:limit]
+
+@dataclass(frozen=True)
+class RRFFusion:
+    k: int = DEFAULT_K
+
+    def fuse(
+        self,
+        bm25_results: list[dict],
+        semantic_results: list[dict],
+        limit: int,
+    ) -> list[dict]:
+        return combine_rrf_results(bm25_results, semantic_results, self.k)[:limit]
+
 
 class HybridSearch:
     def __init__(self, documents):
@@ -21,62 +57,31 @@ class HybridSearch:
         self.idx.load()
         return self.idx.bm25_search(query, limit)
 
-    def weighted_search(self, query, alpha = DEFAULT_ALPHA, limit=DEFAULT_SEARCH_LIMIT):
-        keyword_results = self._bm25_search(query, limit * 500)
-        semantic_results = self.semantic_search.search_chunks(query, limit * 500)
+    def _retrieve(self, query: str, limit: int) -> tuple[list[dict], list[dict]]:
+        if limit <= 0:
+            return [], []
 
-        results = combine_search_results(keyword_results, semantic_results, alpha)
-        return results[:limit]
+        retrieval_limit = limit * RETRIEVAL_EXPANSION_FACTOR
+        bm25_results = self._bm25_search(query, retrieval_limit)
+        semantic_results = self.semantic_search.search_chunks(query, retrieval_limit)
+        return bm25_results, semantic_results
 
-    def rrf_search(self, query, k, limit=10):
-        bm25_results = self._bm25_search(query, limit * 500)
-        semantic_results = self.semantic_search.search_chunks(query, limit * 500)
-        doc_ranks_by_id = {}
-        for rank, doc in enumerate(bm25_results, 1):
-            doc_id = doc["id"]
-            doc_ranks_by_id[doc_id] = format_search_results(
-                doc_id=doc["id"],
-                title=doc["title"],
-                document=doc["document"],
-                rrf_score=1 / (k + rank),
-                semantic_rank=None,
-                bm25_rank= rank,
-                score=0
-            )
-            
-            # {
-            #     "id": doc_id,
-            #     "title": doc["title"],
-            #     "document": doc["document"],
-            #     "rrf_score": 1 / (k + rank),
-            #     "bm25_rank": rank,
-            #     "semantic_rank": None
-            # }
+    def search(
+        self,
+        query: str,
+        fusion_strategy: FusionStrategy,
+        limit: int = DEFAULT_SEARCH_LIMIT,
+    ) -> list[dict]:
+        bm25_results, semantic_results = self._retrieve(query, limit)
+        return fusion_strategy.fuse(bm25_results, semantic_results, limit)
 
-        for rank, doc in enumerate(semantic_results, 1):
-            doc_id = doc["id"]
-            if doc_id not in doc_ranks_by_id:
+    def weighted_search(
+        self, query: str, alpha: float = DEFAULT_ALPHA, limit: int = DEFAULT_SEARCH_LIMIT
+    ) -> list[dict]:
+        return self.search(query, WeightedFusion(alpha), limit)
 
-                doc_ranks_by_id[doc_id] = format_search_results(
-                    doc_id=doc["id"],
-                    title=doc["title"],
-                    document=doc["document"],
-                    rrf_score=1 / (k + rank),
-                    semantic_rank=rank,
-                    bm25_rank= None,
-                    score=0           
-                )
-            else:
-                doc_ranks_by_id[doc_id] = format_search_results(
-                    doc_id=doc["id"],
-                    title=doc["title"],
-                    document=doc["document"],
-                    rrf_score=doc_ranks_by_id[doc_id]["metadata"]["rrf_score"] + (1 / (k + rank)),
-                    semantic_rank=rank,
-                    bm25_rank=doc_ranks_by_id[doc_id]["metadata"]["bm25_rank"],
-                    score=0
-                )
-        return sorted(doc_ranks_by_id.values(), key=lambda doc:doc["metadata"]["rrf_score"], reverse=True)[:limit] 
+    def rrf_search(self, query: str, k: int, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
+        return self.search(query, RRFFusion(k), limit)
 
 
 
@@ -93,6 +98,55 @@ def normalize_scores(scores: list[float]):
         normalized_scores.append(normalized)
 
     return normalized_scores
+
+
+def combine_rrf_results(
+    bm25_results: list[dict], semantic_results: list[dict], k: int = DEFAULT_K
+) -> list[dict]:
+    doc_ranks_by_id = {}
+
+    for rank, doc in enumerate(bm25_results, 1):
+        doc_id = doc["id"]
+        doc_ranks_by_id[doc_id] = format_search_results(
+            doc_id=doc["id"],
+            title=doc["title"],
+            document=doc["document"],
+            score=0,
+            rrf_score=1 / (k + rank),
+            semantic_rank=None,
+            bm25_rank=rank,
+        )
+
+    for rank, doc in enumerate(semantic_results, 1):
+        doc_id = doc["id"]
+        if doc_id not in doc_ranks_by_id:
+            doc_ranks_by_id[doc_id] = format_search_results(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["document"],
+                score=0,
+                rrf_score=1 / (k + rank),
+                semantic_rank=rank,
+                bm25_rank=None,
+            )
+        else:
+            doc_ranks_by_id[doc_id] = format_search_results(
+                doc_id=doc["id"],
+                title=doc["title"],
+                document=doc["document"],
+                score=0,
+                rrf_score=doc_ranks_by_id[doc_id]["metadata"]["rrf_score"]
+                + (1 / (k + rank)),
+                semantic_rank=rank,
+                bm25_rank=doc_ranks_by_id[doc_id]["metadata"]["bm25_rank"],
+            )
+
+    return sorted(
+        doc_ranks_by_id.values(),
+        key=lambda doc: doc["metadata"]["rrf_score"],
+        reverse=True,
+    )
+
 
 def combine_search_results(
     bm25_results: list[dict], semantic_results: list[dict], alpha: float = DEFAULT_ALPHA
