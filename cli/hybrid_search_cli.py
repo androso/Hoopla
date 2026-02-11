@@ -30,6 +30,8 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=int, default=60, help="Constant to use in the ranking")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="Limit of search results")
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
+    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual"], help="Use LLM based reranking for better results")
+    
     args = parser.parse_args()
 
     match args.command:
@@ -48,12 +50,13 @@ def main() -> None:
                print(f"     {result['document']}...")
 
         case "rrf-search":
-            result = rrf_search_command(args.query, args.k, args.enhance, args.limit)
+            result = rrf_search_command(args.query, args.k, args.enhance, args.limit, args.rerank_method)
             if result["enhanced_query"]:
                 print(f"Enhanced query ({result['enhanced_method']}): '{result['original_query']} -> '{result['enhanced_query']}")
 
             for i, result in enumerate(result["results"], 1):
                print(f"{i}. {result['title']}") 
+               print(f"     Rerank Score: {result["metadata"]['reranked_score']}")
                print(f"     RRF Score: {result["metadata"]['rrf_score']}")
                print(f"     BM25 Rank: {result["metadata"]['bm25_rank']}, Semantic Rank: {result["metadata"]['semantic_rank']}")
                print(f"     {result['document']}...")

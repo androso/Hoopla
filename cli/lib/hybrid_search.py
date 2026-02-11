@@ -1,13 +1,13 @@
 import os
 from dataclasses import dataclass
 from typing import Protocol, Optional
-
+import time
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
-from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT, RETRIEVAL_EXPANSION_FACTOR
+from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
-from cli.gemini import enhance_query
+from cli.gemini import enhance_query, score_document
 
 class FusionStrategy(Protocol):
     def fuse(
@@ -62,9 +62,8 @@ class HybridSearch:
         if limit <= 0:
             return [], []
 
-        retrieval_limit = limit * RETRIEVAL_EXPANSION_FACTOR
-        bm25_results = self._bm25_search(query, retrieval_limit)
-        semantic_results = self.semantic_search.search_chunks(query, retrieval_limit)
+        bm25_results = self._bm25_search(query, limit)
+        semantic_results = self.semantic_search.search_chunks(query, limit)
         return bm25_results, semantic_results
 
     def search(
@@ -205,7 +204,7 @@ def hybrid_search_command(query: str, alpha:float = DEFAULT_ALPHA, limit=DEFAULT
     results = search.weighted_search(query, alpha, limit)
     return results
 
-def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, limit = DEFAULT_SEARCH_LIMIT):
+def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, limit = DEFAULT_SEARCH_LIMIT, rerank_method: Optional[str] = None):
     movies = load_movies()
     search = HybridSearch(movies)
     original_query = query
@@ -214,10 +213,18 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
     if enhance:
         enhanced_query = enhance_query(query, enhance)
         query = enhanced_query
-        
-    search_limit = limit
 
-    results = search.rrf_search(query, k, limit)
+    if rerank_method == "individual":
+        search_limit = limit * 5
+        results = search.rrf_search(query, k, search_limit)
+
+        for result in results:
+            result["metadata"]["reranked_score"] = score_document(query, result)         
+            time.sleep(3)            
+        results = sorted(results, key=lambda doc: doc["metadata"]["reranked_score"], reverse=True)[:limit]
+        
+    else:
+        results = search.rrf_search(query, k, limit)
 
     return {
         "original_query": original_query,

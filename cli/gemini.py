@@ -6,7 +6,7 @@ from typing import Optional
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
-model = "gemini-2.5-flash"
+model = "gemini-3-flash-preview"
 
 def spellcheck_query(query: str):
     prompt = f"""Fix any spelling errors in this movie search query.
@@ -79,8 +79,29 @@ def expand_query(query:str):
     corrected = (response.text).strip().strip('"')
     return corrected if corrected else query
 
+def score_document(query: str, doc):
+    prompt = f"""Rate how well this movie matches the search query.
 
+    Query: "{query}"
+    Movie: {doc.get("title", "")} - {doc.get("document", "")}
 
+    Consider:
+    - Direct relevance to query
+    - User intent (what they're looking for)
+    - Content appropriateness
+
+    Rate 0-10 (10 = perfect match).
+    Give me ONLY the number in your response, no other text or explanation.
+
+    Score:"""
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt
+    )
+
+    corrected = int((response.text).strip().strip('"'))
+    return corrected if corrected else 0
 
 def enhance_query(query: str, method: Optional[str] = None):
     match method:
