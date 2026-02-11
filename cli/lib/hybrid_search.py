@@ -1,12 +1,13 @@
 import os
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Optional
 
 from .keyword_search import InvertedIndex
 from .semantic_search import ChunkedSemanticSearch
 from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT, RETRIEVAL_EXPANSION_FACTOR
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
+from cli.gemini import enhance_query
 
 class FusionStrategy(Protocol):
     def fuse(
@@ -204,8 +205,25 @@ def hybrid_search_command(query: str, alpha:float = DEFAULT_ALPHA, limit=DEFAULT
     results = search.weighted_search(query, alpha, limit)
     return results
 
-def rrf_search_command(query: str, k=DEFAULT_K, limit = DEFAULT_SEARCH_LIMIT):
+def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, limit = DEFAULT_SEARCH_LIMIT):
     movies = load_movies()
     search = HybridSearch(movies)
+    original_query = query
+    enhanced_query = None
+
+    if enhance:
+        enhanced_query = enhance_query(query, enhance)
+        query = enhanced_query
+        
+    search_limit = limit
+
     results = search.rrf_search(query, k, limit)
-    return results
+
+    return {
+        "original_query": original_query,
+        "enhanced_query": enhanced_query,
+        "enhanced_method": enhance,
+        "query": query,
+        "k": k,
+        "results": results
+    }

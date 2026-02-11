@@ -1,4 +1,9 @@
 import argparse
+import sys
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 
 from lib.hybrid_search import (
     normalize_scores,
@@ -43,14 +48,11 @@ def main() -> None:
                print(f"     {result['document']}...")
 
         case "rrf-search":
-            if args.enhance:
-                enhanced_query = spellcheck_query(args.query)
-                print(f"Enhanced query ({args.enhance}): '{args.query} -> '{enhanced_query}")
-                results = rrf_search_command(enhanced_query, args.k, args.limit)
-            else:
-                results = rrf_search_command(args.query, args.k, args.limit) 
+            result = rrf_search_command(args.query, args.k, args.enhance, args.limit)
+            if result["enhanced_query"]:
+                print(f"Enhanced query ({result['enhanced_method']}): '{result['original_query']} -> '{result['enhanced_query']}")
 
-            for i, result in enumerate(results, 1):
+            for i, result in enumerate(result["results"], 1):
                print(f"{i}. {result['title']}") 
                print(f"     RRF Score: {result["metadata"]['rrf_score']}")
                print(f"     BM25 Rank: {result["metadata"]['bm25_rank']}, Semantic Rank: {result["metadata"]['semantic_rank']}")
