@@ -30,7 +30,7 @@ def main() -> None:
     rrf_search_parser.add_argument("--k", type=int, default=60, help="Constant to use in the ranking")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="Limit of search results")
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
-    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual"], help="Use LLM based reranking for better results")
+    rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch"], help="Use LLM based reranking for better results")
     
     args = parser.parse_args()
 
@@ -47,7 +47,7 @@ def main() -> None:
                print(f"{i}. {result['title']}") 
                print(f"     Hybrid score: {result['score']}")
                print(f"     BM25: {result['metadata']['bm25_score']}, Semantic: {result['metadata']['semantic_score']}")
-               print(f"     {result['document']}...")
+               print(f"     {result['document'][:100]}...")
 
         case "rrf-search":
             result = rrf_search_command(args.query, args.k, args.enhance, args.limit, args.rerank_method)
@@ -56,10 +56,13 @@ def main() -> None:
 
             for i, result in enumerate(result["results"], 1):
                print(f"{i}. {result['title']}") 
-               print(f"     Rerank Score: {result["metadata"]['reranked_score']}")
-               print(f"     RRF Score: {result["metadata"]['rrf_score']}")
+               if args.rerank_method == "batch":
+                    print(f"     Rerank Rank: {i}")
+               if args.rerank_method == "individual": 
+                    print(f"     Rerank Score: {result["metadata"]['reranked_score']}")
+               print(f"     RRF Score: {result["metadata"]['rrf_score']:.3f}")
                print(f"     BM25 Rank: {result["metadata"]['bm25_rank']}, Semantic Rank: {result["metadata"]['semantic_rank']}")
-               print(f"     {result['document']}...")
+               print(f"     {result['document'][:100]}...")
         case _:
             parser.print_help()
 

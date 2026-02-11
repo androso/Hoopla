@@ -7,7 +7,7 @@ from .semantic_search import ChunkedSemanticSearch
 from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
-from cli.gemini import enhance_query, score_document
+from cli.gemini import enhance_query, score_document, score_batch_documents
 
 class FusionStrategy(Protocol):
     def fuse(
@@ -214,15 +214,19 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
         enhanced_query = enhance_query(query, enhance)
         query = enhanced_query
 
-    if rerank_method == "individual":
+    if rerank_method:
         search_limit = limit * 5
         results = search.rrf_search(query, k, search_limit)
 
-        for result in results:
-            result["metadata"]["reranked_score"] = score_document(query, result)         
-            time.sleep(3)            
-        results = sorted(results, key=lambda doc: doc["metadata"]["reranked_score"], reverse=True)[:limit]
-        
+        if rerank_method == "individual":
+            for result in results:
+                result["metadata"]["reranked_score"] = score_document(query, result)         
+                time.sleep(3)            
+            results = sorted(results, key=lambda doc: doc["metadata"]["reranked_score"], reverse=True)[:limit]
+        else:
+            results = score_batch_documents(query, results)[:limit]
+            # for result in results:
+
     else:
         results = search.rrf_search(query, k, limit)
 

@@ -11,7 +11,7 @@ def format_search_results(
     return {
         "id": doc_id,
         "title": title,
-        "document": document[:100],
+        "document": document,
         "score": round(score, SCORE_PRECISION),
         "metadata": metadata if metadata else {},
     }

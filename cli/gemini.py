@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from google import genai
 from typing import Optional
-
+import json 
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
@@ -78,6 +78,31 @@ def expand_query(query:str):
 
     corrected = (response.text).strip().strip('"')
     return corrected if corrected else query
+
+
+def score_batch_documents(query: str, docs):
+    doc_list_str = json.dumps(docs, indent=2)
+    prompt = f"""Rank these movies by relevance to the search query.
+
+    Query: "{query}"
+
+    Movies:
+    {doc_list_str}
+
+    Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else. For example:
+
+    [75, 12, 34, 2, 1]
+    """
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt
+    )
+    corrected = (response.text).strip().strip('"')
+    ids_list = json.loads(corrected)
+    id_to_position = {id_val: idx for idx, id_val in enumerate(ids_list)}
+    
+    return sorted(docs, key=lambda doc: id_to_position.get(doc['id'], float('inf')))
 
 def score_document(query: str, doc):
     prompt = f"""Rate how well this movie matches the search query.
