@@ -6,6 +6,8 @@ from lib.hybrid_search import (
     rrf_search_command
 )
 
+from gemini import spellcheck_query
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
     subparser = parser.add_subparsers(dest="command", help="Available commands")
@@ -22,7 +24,7 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="Query to use for search")
     rrf_search_parser.add_argument("--k", type=int, default=60, help="Constant to use in the ranking")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="Limit of search results")
-
+    rrf_search_parser.add_argument("--enhance", type=str, choices=["spell"], help="Query enhancement method")
     args = parser.parse_args()
 
     match args.command:
@@ -41,7 +43,13 @@ def main() -> None:
                print(f"     {result['document']}...")
 
         case "rrf-search":
-            results = rrf_search_command(args.query, args.k, args.limit) 
+            if args.enhance:
+                enhanced_query = spellcheck_query(args.query)
+                print(f"Enhanced query ({args.enhance}): '{args.query} -> '{enhanced_query}")
+                results = rrf_search_command(enhanced_query, args.k, args.limit)
+            else:
+                results = rrf_search_command(args.query, args.k, args.limit) 
+
             for i, result in enumerate(results, 1):
                print(f"{i}. {result['title']}") 
                print(f"     RRF Score: {result["metadata"]['rrf_score']}")
