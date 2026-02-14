@@ -8,6 +8,7 @@ from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
 from cli.gemini import enhance_query, score_document, score_batch_documents
+from sentence_transformers import CrossEncoder
 
 class FusionStrategy(Protocol):
     def fuse(
@@ -223,9 +224,18 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
                 result["metadata"]["reranked_score"] = score_document(query, result)         
                 time.sleep(3)            
             results = sorted(results, key=lambda doc: doc["metadata"]["reranked_score"], reverse=True)[:limit]
+        elif rerank_method=="cross_encoder":
+            pairs = []
+            for doc in results:
+                pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"]) 
+            encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
+            scores = encoder.predict(pairs)       
+            for score_idx, score in enumerate(scores):
+                results[score_idx]["metadata"]["cross_encoder_score"] = float(score)
+
+            results = sorted(results, key=lambda doc: doc["metadata"]["cross_encoder_score"], reverse=True)[:limit]
         else:
             results = score_batch_documents(query, results)[:limit]
-            # for result in results:
 
     else:
         results = search.rrf_search(query, k, limit)
