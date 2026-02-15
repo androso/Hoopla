@@ -7,7 +7,6 @@ from .semantic_search import ChunkedSemanticSearch
 from .search.constants import DEFAULT_ALPHA, DEFAULT_K, DEFAULT_SEARCH_LIMIT
 from .search.formatting import format_search_results
 from .search.loaders import load_movies
-from cli.gemini import enhance_query, score_document, score_batch_documents
 from sentence_transformers import CrossEncoder
 
 class FusionStrategy(Protocol):
@@ -212,6 +211,7 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
     enhanced_query = None
 
     if enhance:
+        from cli.gemini import enhance_query
         enhanced_query = enhance_query(query, enhance)
         query = enhanced_query
 
@@ -220,6 +220,7 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
         results = search.rrf_search(query, k, search_limit)
 
         if rerank_method == "individual":
+            from cli.gemini import score_document
             for result in results:
                 result["metadata"]["reranked_score"] = score_document(query, result)         
                 time.sleep(3)            
@@ -235,6 +236,7 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
 
             results = sorted(results, key=lambda doc: doc["metadata"]["cross_encoder_score"], reverse=True)[:limit]
         else:
+            from cli.gemini import score_batch_documents
             results = score_batch_documents(query, results)[:limit]
 
     else:

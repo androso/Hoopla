@@ -23,7 +23,7 @@ def load_chunk_embeddings():
 
 
 def load_movies() -> List[Dict[str, Any]]:
-    with open(DATA_PATH, "r") as f:
+    with open(f"{DATA_PATH}/movies.json", "r") as f:
         data = json.load(f)
         return data["movies"]
 
@@ -36,3 +36,7 @@ def load_stop_words() -> List[str]:
 def load_movie_embeddings():
     with open(MOVIE_EMBEDDINGS_PATH, "rb") as f:
         return np.load(f)
+
+def load_dataset():
+    with open(f"{DATA_PATH}/golden_dataset.json", "r") as f:
+        return json.load(f)
