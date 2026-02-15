@@ -40,6 +40,7 @@ class RRFFusion:
         semantic_results: list[dict],
         limit: int,
     ) -> list[dict]:
+
         return combine_rrf_results(bm25_results, semantic_results, self.k)[:limit]
 
 
@@ -61,7 +62,7 @@ class HybridSearch:
     def _retrieve(self, query: str, limit: int) -> tuple[list[dict], list[dict]]:
         if limit <= 0:
             return [], []
-
+        limit *= 500
         bm25_results = self._bm25_search(query, limit)
         semantic_results = self.semantic_search.search_chunks(query, limit)
         return bm25_results, semantic_results

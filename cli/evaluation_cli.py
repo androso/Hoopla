@@ -23,15 +23,19 @@ def main():
         query = test_case["query"]
         relevant_docs = test_case["relevant_docs"]
         results = instance_search.rrf_search(query, 60, limit)
-        # i can iterate over each result and see how many of them are inside the golden dataase
         relevant_docs_found_n = 0
+        # relevant_retrieved_docs = []
         for result in results:
             if result["title"] in relevant_docs:    
                 relevant_docs_found_n += 1
+                # relevant_retrieved_docs.append(result["title"])
         precision = relevant_docs_found_n / len(results)
+        recall = relevant_docs_found_n / len(relevant_docs)
+
         print(f"k={limit}")
         print(f"- {query}")
         print(f"    - Precision@{limit}: {precision:.4f}")
+        print(f"    - Recall@{limit}: {recall:.4f}")
         print(f"    - Retrieved: {[result['title'] for result in results]}")
         print(f"    - Relevant: {[doc for doc in relevant_docs]}")
 
