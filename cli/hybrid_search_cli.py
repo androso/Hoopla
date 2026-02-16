@@ -11,7 +11,7 @@ from lib.hybrid_search import (
     rrf_search_command
 )
 
-from gemini import spellcheck_query
+from gemini import spellcheck_query, evaluate_results
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -31,7 +31,8 @@ def main() -> None:
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="Limit of search results")
     rrf_search_parser.add_argument("--enhance", type=str, choices=["spell", "rewrite", "expand"], help="Query enhancement method")
     rrf_search_parser.add_argument("--rerank-method", type=str, choices=["individual", "batch", "cross_encoder"], help="Use LLM based reranking for better results")
-    
+    rrf_search_parser.add_argument("--evaluate", action="store_true", help="Run Evaluation") 
+
     args = parser.parse_args()
 
     match args.command:
@@ -51,21 +52,29 @@ def main() -> None:
 
         case "rrf-search":
             result = rrf_search_command(args.query, args.k, args.enhance, args.limit, args.rerank_method)
+                
             if result["enhanced_query"]:
                 print(f"Enhanced query ({result['enhanced_method']}): '{result['original_query']} -> '{result['enhanced_query']}")
 
-            for i, result in enumerate(result["results"], 1):
-               print(f"{i}. {result['title']}") 
+            for i, res in enumerate(result["results"], 1):
+               print(f"{i}. {res['title']}") 
                if args.rerank_method == "cross_encoder":
-                    print(f"Cross Encoder Score: {result["metadata"]["cross_encoder_score"]}")
+                    print(f"Cross Encoder Score: {res["metadata"]["cross_encoder_score"]}")
                if args.rerank_method == "batch":
                     print(f"     Rerank Rank: {i}")
                if args.rerank_method == "individual": 
-                    print(f"     Rerank Score: {result["metadata"]['reranked_score']}")
+                    print(f"     Rerank Score: {res["metadata"]['reranked_score']}")
                 
-               print(f"     RRF Score: {result["metadata"]['rrf_score']:.3f}")
-               print(f"     BM25 Rank: {result["metadata"]['bm25_rank']}, Semantic Rank: {result["metadata"]['semantic_rank']}")
-               print(f"     {result['document'][:100]}...")
+               print(f"     RRF Score: {res["metadata"]['rrf_score']:.3f}")
+               print(f"     BM25 Rank: {res["metadata"]['bm25_rank']}, Semantic Rank: {res["metadata"]['semantic_rank']}")
+               print(f"     {res['document'][:100]}...")
+            
+            if args.evaluate:
+                # print(result)
+                results_evaluated = evaluate_results(result['query'], result["results"])
+                for doc_idx, doc in enumerate(results_evaluated, 1):
+                    print(f"{doc_idx}. {doc['title']}: {doc['metadata']['llm_score']}/3")
+
         case _:
             parser.print_help()
 

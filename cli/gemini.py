@@ -128,6 +128,45 @@ def score_document(query: str, doc):
     corrected = int((response.text).strip().strip('"'))
     return corrected if corrected else 0
 
+def evaluate_results(query: str, results):
+    formatted_results = []
+    for res in results:
+        formatted_results.append({
+            "title": res["title"],
+            "document": res["document"]
+        })
+    formatted_results = json.dumps(formatted_results)
+    prompt = f"""Rate how relevant each result is to this query on a 0-3 scale:
+
+    Query: "{query}"
+
+    Results:
+    {chr(10).join(formatted_results)}
+
+    Scale:
+    - 3: Highly relevant
+    - 2: Relevant
+    - 1: Marginally relevant
+    - 0: Not relevant
+
+    Do NOT give any numbers out than 0, 1, 2, or 3.
+
+    Return ONLY the scores in the same order you were given the documents. Return a valid JSON list, nothing else. For example:
+
+    [2, 0, 3, 2, 0, 1]""" 
+    
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt
+    )
+    
+    corrected = (response.text).strip().strip('"')
+    scores = json.loads(corrected)
+    for doc_idx, doc in enumerate(results):
+        doc["metadata"]["llm_score"] = scores[doc_idx] 
+
+    return results
+
 def enhance_query(query: str, method: Optional[str] = None):
     match method:
         case "spell":
