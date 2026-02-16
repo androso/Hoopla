@@ -211,14 +211,23 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
     original_query = query
     enhanced_query = None
 
+    print(f"[DEBUG] Original query: {query}")
+
     if enhance:
         from cli.gemini import enhance_query
         enhanced_query = enhance_query(query, enhance)
         query = enhanced_query
+        print(f"[DEBUG] Enhanced query ({enhance}): {query}")
+    else:
+        print("[DEBUG] No query enhancement applied")
 
     if rerank_method:
         search_limit = limit * 5
         results = search.rrf_search(query, k, search_limit)
+
+        print(f"[DEBUG] RRF search returned {len(results)} results (search_limit={search_limit}, k={k})")
+        for i, r in enumerate(results[:10]):
+            print(f"  [DEBUG] RRF result #{i + 1}: id={r['id']} title={r['title']} rrf_score={r['metadata']['rrf_score']:.4f}")
 
         if rerank_method == "individual":
             from cli.gemini import score_document
@@ -240,8 +249,16 @@ def rrf_search_command(query: str, k=DEFAULT_K, enhance: Optional[str] = None, l
             from cli.gemini import score_batch_documents
             results = score_batch_documents(query, results)[:limit]
 
+        print(f"[DEBUG] Final results after re-ranking ({rerank_method}):")
+        for i, r in enumerate(results):
+            print(f"  [DEBUG] Final #{i + 1}: id={r['id']} title={r['title']} rrf_score={r['metadata']['rrf_score']:.4f}")
+
     else:
         results = search.rrf_search(query, k, limit)
+
+        print(f"[DEBUG] RRF search returned {len(results)} results (no re-ranking)")
+        for i, r in enumerate(results):
+            print(f"  [DEBUG] RRF result #{i + 1}: id={r['id']} title={r['title']} rrf_score={r['metadata']['rrf_score']:.4f}")
 
     return {
         "original_query": original_query,
