@@ -1,11 +1,6 @@
 import argparse
-import sys
-from pathlib import Path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from gemini import rag_generation
 from lib.hybrid_search import rrf_search_command
+from lib.augmented_generation import rag_command
 
 def main():
     parser = argparse.ArgumentParser(description="Retrieval Augmented Generation CLI")
@@ -22,9 +17,8 @@ def main():
     match args.command:
         case "rag":
             query = args.query
-            # do the rag stuff here
             search_result = rrf_search_command(query, limit=5)
-            rag_response = rag_generation(query, search_result["results"])
+            rag_response = rag_command(query, search_result["results"])
 
             print(f"Search results:")
             for doc in search_result['results']:

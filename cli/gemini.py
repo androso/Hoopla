@@ -179,7 +179,7 @@ def enhance_query(query: str, method: Optional[str] = None):
             return query
     
 
-def rag_generation(query: str, docs):
+def generate_answer(query: str, docs):
     prompt = f"""Answer the question or provide information based on the provided documents. This should be tailored to Hoopla users. Hoopla is a movie streaming service.
 
     Query: {query}
