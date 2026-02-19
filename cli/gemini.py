@@ -196,7 +196,11 @@ def generate_answer(query: str, docs):
 
     return response.text 
 
-def generate_summary(query: str, docs):
+def generate_summary(query: str, search_results, limit=5):
+    docs_text = ""
+    for i, result in enumerate(search_results[:limit], start=1):
+        docs_text += f"Document {i}: {result['title']}; {result['document']}\n\n"
+
     prompt = f"""
         Provide information useful to this query by synthesizing information from multiple search results in detail.
         The goal is to provide comprehensive information so that users know what their options are.
@@ -204,7 +208,7 @@ def generate_summary(query: str, docs):
         This should be tailored to Hoopla users. Hoopla is a movie streaming service.
         Query: {query}
         Search Results:
-        {docs}
+        {docs_text}
         Provide a comprehensive 3–4 sentence answer that combines information from multiple sources:
     """
 
@@ -213,4 +217,4 @@ def generate_summary(query: str, docs):
         contents=prompt
     )
 
-    return response.text
+    return (response.text or "").strip()
