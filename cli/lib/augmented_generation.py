@@ -1,6 +1,6 @@
 from .search.loaders import load_movies
 from .hybrid_search import HybridSearch
-from gemini import generate_answer, generate_summary, generate_citations
+from gemini import generate_answer, generate_summary, generate_citations, generate_answer_to_question
 from .search.constants import DEFAULT_K
 
 def rag_command(query: str, k=DEFAULT_K):
@@ -61,6 +61,27 @@ def citations_command(query: str, limit: int):
 
     return {
         "query": query,
-        "search_results": res,
+        "search_results": res[:limit],
+        "answer": answer
+    }
+
+def question_command(query: str, limit: int):
+    movies = load_movies()
+    search = HybridSearch(movies)
+    
+    res = search.rrf_search(query, k=DEFAULT_K, limit = limit * 500)
+
+    if not res:
+        return {
+            "query": query,
+            "search_results": [],
+            "errors": "No results found"
+        }
+
+    answer = generate_answer_to_question(query, res, limit)    
+
+    return {
+        "query": query,
+        "search_results": res[:limit],
         "answer": answer
     }

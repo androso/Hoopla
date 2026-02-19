@@ -250,3 +250,33 @@ def generate_citations(query: str, search_results, limit=5):
     )
 
     return (response.text or "").strip()
+
+def generate_answer_to_question(question: str, search_results, limit=5):
+    docs_text = ""
+    for i, result in enumerate(search_results[:limit], start=1):
+        docs_text += f"Document {i}: {result['title']}; {result['document']}\n\n"
+
+
+    prompt = f"""Answer the user's question based on the provided movies that are available on Hoopla.
+
+    This should be tailored to Hoopla users. Hoopla is a movie streaming service.
+
+    Question: {question}
+
+    Documents:
+    {docs_text}
+
+    Instructions:
+    - Answer questions directly and concisely
+    - Be casual and conversational
+    - Don't be cringe or hype-y
+    - Talk like a normal person would in a chat conversation
+
+    Answer:"""
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt
+    )
+
+    return (response.text or "").strip()
